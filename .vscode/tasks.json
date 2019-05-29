@@ -1,0 +1,55 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+
+    //make sure all compilers, make programs, and CMake is added to your PATH
+
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "cmake",
+            "command": [
+                "cmake"
+            ],
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "args": [
+                "${workspaceRoot}",
+                "-G",
+                "\"${input:generator}\""
+            ]
+        },
+        {
+            "label": "make",
+            "command": [
+                "${input:makeProgram}"
+            ],
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "generator",
+            "type": "pickString",
+            "description": "What type of Build File Generator?",
+            "options": ["MinGW Makefiles", "Unix Makefiles", "Visual Studio 15 2017"],
+            "default": "MinGW Makefiles"
+        },
+        {
+            "id": "makeProgram",
+            "type": "pickString",
+            "description": "What is the name of your make program?",
+            "options": ["make", "mingw32-make.exe"],
+            "default": "mingw32-make.exe"
+        }
+    ]
+}
