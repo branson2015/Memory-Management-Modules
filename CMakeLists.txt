@@ -1,9 +1,17 @@
-cmake_minimum_required( VERSION 3.11 )
+cmake_minimum_required(VERSION 3.2)
 
-ADD_LIBRARY( mmm STATIC mmm.cpp )
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-SET( APP_EXE StaticTest )
+set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
 
-ADD_EXECUTABLE( ${APP_EXE} Main.cpp ) 
-TARGET_LINK_LIBRARIES( ${APP_EXE} -static-libgcc -static-libstdc++ )
-# TARGET_COMPILE_OPTIONS( ${APP_EXE} PUBLIC -static-libgcc -static-libstdc++ )
+set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(BIN_DIR     ${PROJECT_SOURCE_DIR}/bin)
+set(LIB_DIR     ${PROJECT_SOURCE_DIR}/lib)
+set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
+
+include_directories(${INCLUDE_DIR})
+include_directories(${SOURCE_DIR})
+
+add_subdirectory(${SOURCE_DIR})
+add_subdirectory(${PROJECT_SOURCE_DIR}/test)

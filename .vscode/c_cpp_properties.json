@@ -10,12 +10,11 @@
                 "UNICODE",
                 "_UNICODE"
             ],
-
             "compilerPath": "D:/mingw/mingw-8.1.0/mingw64/bin/g++.exe",
             "intelliSenseMode": "gcc-x64",
-
             "cStandard": "c11",
-            "cppStandard": "c++17"
+            "cppStandard": "c++17",
+            "configurationProvider": "vector-of-bool.cmake-tools"
         }
     ],
     "version": 4

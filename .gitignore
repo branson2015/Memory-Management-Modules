@@ -36,8 +36,13 @@
 .vscode/ipch
 
 # cmake
-/CMakeFiles
-CMakeCache.txt
+*CMakeFiles
+*CMakeCache.txt
 
 # makefile
 Makefile
+
+#directories
+bin
+lib
+build

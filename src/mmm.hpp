@@ -11,12 +11,9 @@ class Mmm {
 
     friend Mmm * createMmm(MmmType, size_t);
 
-
     static Mmm* create(MmmType, size_t);
 
-    template<typename T> inline T* alloc(){
-        return static_cast<T*>(_alloc(sizeof(T)));
-    }
+    template<typename T> inline T* alloc(){ return static_cast<T*>(_alloc(sizeof(T))); }
     inline void* alloc(size_t sz){ return _alloc(sz); }
     
     virtual void * _alloc(size_t) = 0;
@@ -26,7 +23,6 @@ class Mmm {
 };
 
 class MmmSingleStack : public Mmm {
-
     void* _alloc(size_t) final;
 };
 

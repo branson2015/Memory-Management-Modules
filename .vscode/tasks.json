@@ -13,7 +13,7 @@
             ],
             "type": "shell",
             "options": {
-                "cwd": "${workspaceRoot}"
+                "cwd": "${workspaceRoot}/build"
             },
             "args": [
                 "${workspaceRoot}",
@@ -28,7 +28,7 @@
             ],
             "type": "shell",
             "options": {
-                "cwd": "${workspaceRoot}"
+                "cwd": "${workspaceRoot}/build"
             },
             "group": {
                 "kind": "build",
