@@ -4,41 +4,54 @@
 #include <cstddef> 
 
 enum class MmmType{
-    singleStack
+    singleStack,
+    doubleStack
 };
 
 class Mmm {
-
-    friend Mmm * createMmm(MmmType, size_t);
-
-    static Mmm* create(MmmType, size_t);
-
-    template<typename T> inline T* alloc(){ return static_cast<T*>(_alloc(sizeof(T))); }
-    inline void* alloc(size_t sz){ return _alloc(sz); }
+    public:
     
+    static Mmm *create(MmmType, void*, const size_t);
+    inline static Mmm *create(MmmType type, const size_t sz){ return Mmm::create(type, malloc(sz), sz); }
+
+    template<typename T> inline T *alloc(const int copies = 1){ return static_cast<T*>(_alloc(sizeof(T)*copies)); }
+    inline void *alloc(const size_t sz, const int copies = 1){ return _alloc(sz*copies); }
+    inline void free(void *m){ _free(m); }
+
+    inline size_t getSize(){ return bsize; }
+    inline size_t getFreeSize(){ return fsize; }
+    inline size_t getUsedSize(){ return bsize - fsize; }
+
+    protected:
+    public:
+    
+    inline Mmm(size_t bsize, int classSize): buffer(reinterpret_cast<char*>(this) + classSize), bsize(bsize), fsize(bsize){}
+    inline void *operator new(size_t obj, size_t size, char){ return malloc(obj + size); }
+
+    const size_t ALIGN = 0xF;   //can only align by powers of 2
+    inline size_t align(size_t sz, size_t align){ return (sz + align-1) & ~(align); }
+
     virtual void * _alloc(size_t) = 0;
+    virtual void _free(void* = nullptr) = 0;
 
-    void * buffer;
-
+    char *buffer;
+    size_t bsize, fsize;
 };
+
+
 
 class MmmSingleStack : public Mmm {
-    void* _alloc(size_t) final;
-};
-
-
-//client
-/*class MmmEngine{
     public:
-    inline void operator()(MmmType type){M = Mmm::create(type);}
 
-    private:
-    Mmm *M;
-};*/
+    inline MmmSingleStack(size_t sz): Mmm(sz, sizeof(*this)), curr(buffer){
+        *reinterpret_cast<size_t*>(buffer) = 0;
+    }
 
-inline Mmm * createMmm(MmmType type, size_t sz = 0){
-    return Mmm::create(type, sz);
-}
+    void* _alloc(size_t) final;
+    void _free(void*) final;
 
+    //private:
+    char *curr;
+};
 
 #endif

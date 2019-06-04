@@ -43,6 +43,6 @@
 Makefile
 
 #directories
-bin
-lib
-build
+bin/*
+lib/*
+build/*
