@@ -22,31 +22,22 @@ void * MmmSingleStack::_alloc(size_t sz){
     sz += sizeof(size_t);
     sz = align(sz, ALIGN);
 
-    if(fsize < sz){
-        //error, not enough space, realloc?
-        return nullptr;
-    }
+    if(fsize < sz)  return nullptr; //error, not enough space, realloc?
     
-    
-    curr = curr + *reinterpret_cast<size_t*>(curr);
-    *reinterpret_cast<size_t*>(curr) = sz;
+    curr = curr + sz;
+    *reinterpret_cast<size_t*>(curr - sizeof(size_t)) = sz;
     
     fsize -= sz;
     
-    return curr + sizeof(size_t);
+    return curr;
 }
 
 void MmmSingleStack::_free(void *mem){
-    //error here if mem is not nullptr?
 
-    curr = curr - sizeof(size_t);
+    size_t gain = *reinterpret_cast<size_t*>(curr - sizeof(size_t));
 
-    if(curr == buffer){
-        //error, everything already freed
-        return;
-    }
+    if(gain == 0)   return; //error, everything already freed
 
-    size_t gain = *reinterpret_cast<size_t*>(curr);
     curr = curr - gain;
     fsize += gain;
 

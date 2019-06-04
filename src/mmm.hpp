@@ -16,7 +16,8 @@ class Mmm {
 
     template<typename T> inline T *alloc(const int copies = 1){ return static_cast<T*>(_alloc(sizeof(T)*copies)); }
     inline void *alloc(const size_t sz, const int copies = 1){ return _alloc(sz*copies); }
-    inline void free(void *m){ _free(m); }
+    inline void free(void *m = nullptr){ _free(m); }
+
 
     inline size_t getSize(){ return bsize; }
     inline size_t getFreeSize(){ return fsize; }
@@ -32,7 +33,7 @@ class Mmm {
     inline size_t align(size_t sz, size_t align){ return (sz + align-1) & ~(align); }
 
     virtual void * _alloc(size_t) = 0;
-    virtual void _free(void* = nullptr) = 0;
+    virtual void _free(void*) = 0;
 
     char *buffer;
     size_t bsize, fsize;
@@ -43,7 +44,7 @@ class Mmm {
 class MmmSingleStack : public Mmm {
     public:
 
-    inline MmmSingleStack(size_t sz): Mmm(sz, sizeof(*this)), curr(buffer){
+    inline MmmSingleStack(size_t sz): Mmm(sz, sizeof(*this)), curr(buffer+sizeof(size_t)){
         *reinterpret_cast<size_t*>(buffer) = 0;
     }
 

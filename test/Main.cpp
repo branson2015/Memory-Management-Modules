@@ -15,7 +15,7 @@ inline void printStats(Mmm * m){
     std::cout << "curr:   " << (size_t)(dynamic_cast<MmmSingleStack*>(m)->curr) << std::endl;
     std::cout << "size: " << m->getSize() << std::endl;
     std::cout << "free: " << m->getFreeSize() << std::endl;
-    std::cout << "used: " << m->getUsedSize() << std::endl;
+    std::cout << "used: " << m->getUsedSize() << std::endl << std::endl;
 }
 
 int main(int argc, char **argv){
@@ -23,7 +23,7 @@ int main(int argc, char **argv){
     Mmm *m = Mmm::create(MmmType::singleStack, 1024);
 
     printStats(m);
-    Test *t = m->alloc<Test>(2);
+    Test *t = m->alloc<Test>(4);
     t[0] = {1,2,3,4};
     t[1] = {5,6,7,8};
 
@@ -37,6 +37,17 @@ int main(int argc, char **argv){
     t2->print();
 
     printStats(m);
+
+    m->free();
+
+    printStats(m);
+
+    m->free();
+
+    printStats(m);
+
+    m->free();//error
+
 
     char b;
     std::cin >> b;
