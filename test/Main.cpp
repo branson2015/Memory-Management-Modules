@@ -12,7 +12,7 @@ struct Test{
 
 inline void printStats(Mmm * m){
     std::cout << "buffer: " << (size_t)m->buffer << std::endl;
-    std::cout << "curr:   " << (size_t)(dynamic_cast<MmmSingleStack*>(m)->curr) << std::endl;
+    std::cout << "curr:   " << (size_t)(dynamic_cast<TopDownStack*>(m)->curr) << std::endl;
     std::cout << "size: " << m->getSize() << std::endl;
     std::cout << "free: " << m->getFreeSize() << std::endl;
     std::cout << "used: " << m->getUsedSize() << std::endl << std::endl;
@@ -20,7 +20,7 @@ inline void printStats(Mmm * m){
 
 int main(int argc, char **argv){
 
-    Mmm *m = Mmm::create(MmmType::singleStack, 1024);
+    Mmm *m = Mmm::create(MmmType::doubleStack, 1024);
 
     printStats(m);
     Test *t = m->alloc<Test>(4);
@@ -47,10 +47,6 @@ int main(int argc, char **argv){
     printStats(m);
 
     m->free();//error
-
-
-    char b;
-    std::cin >> b;
 
     return 0;
 }

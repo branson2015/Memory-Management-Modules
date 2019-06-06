@@ -2,6 +2,7 @@
 #define MMM_HEADER
 
 #include <cstddef> 
+#include <utility>
 
 enum class MmmType{
     singleStack,
@@ -39,20 +40,46 @@ class Mmm {
     size_t bsize, fsize;
 };
 
-
-
-class MmmSingleStack : public Mmm {
+class TopDownStack : virtual public Mmm {
     public:
-
-    inline MmmSingleStack(size_t sz): Mmm(sz, sizeof(*this)), curr(buffer+sizeof(size_t)){
+    inline TopDownStack(size_t sz, size_t classSize = sizeof(TopDownStack)): 
+        Mmm(sz, classSize), curr(buffer+sizeof(size_t)){
         *reinterpret_cast<size_t*>(buffer) = 0;
     }
 
-    void* _alloc(size_t) final;
+    virtual void* _alloc(size_t);
+    virtual void _free(void*);
+
+    //protected:
+    char *curr;
+};
+
+class BottomUpStack : virtual public Mmm{
+    public:
+    inline BottomUpStack(size_t sz, size_t classSize = sizeof(BottomUpStack)):
+        Mmm(sz, classSize), curr(buffer + sz - sizeof(size_t)){
+        *reinterpret_cast<size_t*>(buffer+sz) = 0;
+    }
+
+    virtual void *_alloc(size_t);
+    virtual void _free(void*);
+
+    //protected:
+    char *curr;
+};
+
+class MmmDoubleStack : public TopDownStack, public BottomUpStack{
+    public:
+
+    inline MmmDoubleStack(size_t sz, size_t classSize = sizeof(MmmDoubleStack)):
+        Mmm(sz, classSize), TopDownStack(sz, classSize), BottomUpStack(sz, classSize){}
+    
+    void * _alloc(size_t) final;
     void _free(void*) final;
 
-    //private:
-    char *curr;
+    inline std::pair<TopDownStack*, BottomUpStack*> split(){
+        return std::make_pair(dynamic_cast<TopDownStack*>(this), dynamic_cast<BottomUpStack*>(this));
+    }
 };
 
 #endif
