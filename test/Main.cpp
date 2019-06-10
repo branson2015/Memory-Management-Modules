@@ -1,56 +1,42 @@
 #include <iostream>
 #include "mmm.hpp"
+using namespace mmm;
 
-//TODO: fix private/public used for testing
-
+#define Stack DoubleStack  //for testing
+/*
 struct Test{
     int a, b;
     char c, d;
-
     inline void print(){ std::cout << a << " " << b << " " << +c << " " << +d << std::endl; }
 };
-
+*/
 inline void printStats(Mmm * m){
-    std::cout << "buffer: " << (size_t)m->buffer << std::endl;
-    std::cout << "curr:   " << (size_t)(dynamic_cast<TopDownStack*>(m)->curr) << std::endl;
-    std::cout << "size: " << m->getSize() << std::endl;
+    //std::cout << "curr: " << (size_t)(dynamic_cast<Stack*>(m)->curr) << std::endl;
     std::cout << "free: " << m->getFreeSize() << std::endl;
     std::cout << "used: " << m->getUsedSize() << std::endl << std::endl;
 }
 
 int main(int argc, char **argv){
 
-    Mmm *m = Mmm::create(MmmType::doubleStack, 1024);
-
-    printStats(m);
-    Test *t = m->alloc<Test>(4);
-    t[0] = {1,2,3,4};
-    t[1] = {5,6,7,8};
-
-    t[0].print();
-    t[1].print();
-
+    std::cout << "init:" << std::endl;
+    Mmm *m = Mmm::create(MmmType::Stack, 1024);
     printStats(m);
 
-    Test *t2 = m->alloc<Test>();
-    *t2 = {9, 10, 11, 12};
-    t2->print();
-
+    std::cout << "alloc: " << std::endl;
+    char *t = m->alloc<char>(4);
     printStats(m);
 
-    m->free();
-
+    std::cout << "alloc: " << std::endl;
+    char *v = m->alloc<char>(-4);
     printStats(m);
 
-    m->free();
-
+    std::cout << "free: " << std::endl;
+    m->free(TOP);
     printStats(m);
 
-    m->free();//error
+    std::cout << "free: " << std::endl;
+    m->free(BOTTOM);
+    printStats(m);
 
     return 0;
 }
-
-/*
-    Mmm::create(type, location)
-*/

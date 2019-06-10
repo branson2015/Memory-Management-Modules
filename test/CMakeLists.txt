@@ -10,4 +10,7 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 #target_link_libraries(${PROJECT_NAME} example)
 
 set (EXECUTABLE_OUTPUT_PATH ${BIN_DIR})
+#set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_BUILD_TYPE Debug)
+
 install(TARGETS ${PROJECT_NAME} DESTINATION ${BIN_DIR})

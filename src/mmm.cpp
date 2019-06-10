@@ -2,84 +2,103 @@
 #include <iostream>
 #include "mmm.hpp"
 
-//Base
-Mmm *Mmm::create(MmmType type, void *memory, size_t sz){
-    char *mem = reinterpret_cast<char*>(memory);
-    
-    if(mem == nullptr || sz <= 0){
-        //put error here
+namespace mmm{
+
+    void *TOP = nullptr;
+    void *BOTTOM = nullptr;
+    void *NONE = nullptr;
+
+    Mmm::size Mmm::getClassSize(MmmType type){
+        switch(type){
+            case MmmType::SingleStack:
+            case MmmType::TopDownStack:
+                return sizeof(TopDownStack) + sizeof(size);
+            case MmmType::BottomUpStack:
+                return sizeof(BottomUpStack) + sizeof(size);
+            case MmmType::DoubleStack:
+                return sizeof(DoubleStack) + 2*sizeof(size);
+            default: return 0;
+        }
     }
 
-    //do something with placement new here
-
-    switch(type){
-        case MmmType::singleStack:
-            return new(sz, 0) BottomUpStack(sz);
-        case MmmType::doubleStack:
-            return new(sz, 0) MmmDoubleStack(sz);
-        default: 
-            return nullptr;
+    //Base
+    Mmm *Mmm::create(MmmType type, size sz, void *memory){
+        if(memory == nullptr){
+            sz += Mmm::getClassSize(type);
+            memory = malloc(sz);
+            //memcpy to 0 for debug so debugging is easier
+        }
+        std::cout << (size)memory << std::endl;
+        switch(type){
+            case MmmType::SingleStack:
+            case MmmType::TopDownStack:
+                return new(memory) TopDownStack(sz);
+            case MmmType::BottomUpStack:
+                return new(memory) BottomUpStack(sz);
+            case MmmType::DoubleStack:
+                return new(memory) DoubleStack(sz);
+            default: 
+                return nullptr;
+        }
     }
-}
 
-//TopDownStack
-void * TopDownStack::_alloc(size_t sz){
-    sz = align(sz + sizeof(size_t), ALIGN);
+    //TopDownStack
+    void * TopDownStack::_alloc(size sz){
+        sz += sizeof(size);
 
-    if(fsize < sz)  return nullptr; //error, not enough space, realloc?
-    
-    curr = curr + sz;
-    *reinterpret_cast<size_t*>(curr - sizeof(size_t)) = sz;
-    
-    fsize -= sz;
-    
-    return curr;
-}
+        if(fsize < sz)  return nullptr;
+        
+        curr += sz;
+        fsize -= sz;
 
-void TopDownStack::_free(void *mem){
+        *reinterpret_cast<size*>(curr - sizeof(size)) = sz;
+        
+        return curr;
+    }
 
-    size_t gain = *reinterpret_cast<size_t*>(curr - sizeof(size_t));
+    void TopDownStack::_free(void *&mem){
+        (void)mem;  //silence unused variable compiler warning
 
-    curr = curr - gain;
-    fsize += gain;
-}
+        size gain = *reinterpret_cast<size*>(curr - sizeof(size));
 
-//BottomUpStack
-void * BottomUpStack::_alloc(size_t sz){
-    /*  REDO THIS CODE
-    sz = align(sz + sizeof(size_t), ALIGN);
+        curr -= gain;
+        fsize += gain;
+    }
 
-    if(fsize < sz)  return nullptr; //error, not enough space, realloc?
-    
-    curr = curr + sz;
-    *reinterpret_cast<size_t*>(curr - sizeof(size_t)) = sz;
-    
-    fsize -= sz;
-    
-    return curr;*/
-}
+    //BottomUpStack
+    void * BottomUpStack::_alloc(size sz){
+        sz += sizeof(size);
 
-void BottomUpStack::_free(void *mem){
-    /*  REDO THIS CODE
-    size_t gain = *reinterpret_cast<size_t*>(curr - sizeof(size_t));
+        if(fsize < sz)  return nullptr;
+        
+        curr -= sz;
+        fsize -= sz;
 
-    curr = curr - gain;
-    fsize += gain;*/
-}
+        *reinterpret_cast<size*>(curr) = sz;
+        
+        return reinterpret_cast<size*>(curr) + 1;
+    }
 
-//doubleStack
-void * MmmDoubleStack::_alloc(size_t sz){
-    //do bound checking here for the two currs and make sure they don't cross
-    //OR: have one class change the other class' bsize
-    if(sz > 0)  return TopDownStack::_alloc(sz);
-    else        return BottomUpStack::_alloc(sz);
-    
-}
+    void BottomUpStack::_free(void *&mem){
+        (void)mem;  //silence unused variable compiler warning
 
-void MmmDoubleStack::_free(void *mem){
-    //if mem == TOP?
-    //if mem == BOTTOM?
-    //take advantage of type system??
-    //actually pass pointer to obj you want to free?
-    //why not both?
+        size gain = *reinterpret_cast<size*>(curr);
+
+        curr += gain;
+        fsize += gain;
+    }
+
+    //doubleStack
+    void * DoubleStack::_alloc(size sz){
+        //works for both signed and unsigned types
+        return ((sz > ~sz) || (sz < 0)) ? BottomUpStack::_alloc(sz) : TopDownStack::_alloc(sz);
+    }
+
+    void DoubleStack::_free(void *&mem){
+        if(&mem == &TOP){
+            TopDownStack::_free(NONE);
+        }else if(&mem == &BOTTOM){
+            BottomUpStack::_free(NONE);
+        }
+    }
 }
