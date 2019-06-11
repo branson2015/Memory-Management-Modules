@@ -17,7 +17,7 @@ namespace mmm{
     class Mmm {
         public:
         
-        using size = size_t;
+        using size = size_t;    //can only be unsigned type
         static Mmm *create(MmmType, const size, void* = nullptr);
 
         template<typename T> inline T *alloc(const int copies = 1){ return reinterpret_cast<T*>(_alloc(sizeof(T)*copies)); }

@@ -16,11 +16,11 @@ int main(int argc, char **argv){
     printStats(m);
 
     std::cout << "alloc: " << std::endl;
-    char *t = m->alloc<char>(4);
+    char *t = m->alloc<char>(504);
     printStats(m);
 
     std::cout << "alloc: " << std::endl;
-    char *v = m->alloc<char>(-4);
+    char *v = m->alloc<char>(-504);
     printStats(m);
 
     std::cout << "free: " << std::endl;

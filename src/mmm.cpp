@@ -71,8 +71,7 @@ namespace mmm{
 
     //doubleStack
     void * DoubleStack::_alloc(size sz){
-        //works for both signed and unsigned types, causes compiler warning, oh well. might change.
-        return ((sz > ~sz) || (sz < 0)) ? BottomUpStack::_alloc(sz) : TopDownStack::_alloc(sz);
+        return (sz < ~sz) ? TopDownStack::_alloc(sz) : BottomUpStack::_alloc(~sz + 1);
     }
 
     void DoubleStack::_free(void *&mem){
