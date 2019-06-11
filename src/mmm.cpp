@@ -8,35 +8,16 @@ namespace mmm{
     void *BOTTOM = nullptr;
     void *NONE = nullptr;
 
-    Mmm::size Mmm::getClassSize(MmmType type){
-        switch(type){
-            case MmmType::SingleStack:
-            case MmmType::TopDownStack:
-                return sizeof(TopDownStack) + sizeof(size);
-            case MmmType::BottomUpStack:
-                return sizeof(BottomUpStack) + sizeof(size);
-            case MmmType::DoubleStack:
-                return sizeof(DoubleStack) + 2*sizeof(size);
-            default: return 0;
-        }
-    }
-
     //Base
     Mmm *Mmm::create(MmmType type, size sz, void *memory){
-        if(memory == nullptr){
-            sz += Mmm::getClassSize(type);
-            memory = malloc(sz);
-            //memcpy to 0 for debug so debugging is easier
-        }
-        std::cout << (size)memory << std::endl;
         switch(type){
             case MmmType::SingleStack:
             case MmmType::TopDownStack:
-                return new(memory) TopDownStack(sz);
+                return new(memory, sz, sizeof(size)) TopDownStack(sz);
             case MmmType::BottomUpStack:
-                return new(memory) BottomUpStack(sz);
+                return new(memory, sz, sizeof(size)) BottomUpStack(sz);
             case MmmType::DoubleStack:
-                return new(memory) DoubleStack(sz);
+                return new(memory, sz, sizeof(size)*2) DoubleStack(sz);
             default: 
                 return nullptr;
         }
@@ -90,15 +71,12 @@ namespace mmm{
 
     //doubleStack
     void * DoubleStack::_alloc(size sz){
-        //works for both signed and unsigned types
+        //works for both signed and unsigned types, causes compiler warning, oh well. might change.
         return ((sz > ~sz) || (sz < 0)) ? BottomUpStack::_alloc(sz) : TopDownStack::_alloc(sz);
     }
 
     void DoubleStack::_free(void *&mem){
-        if(&mem == &TOP){
-            TopDownStack::_free(NONE);
-        }else if(&mem == &BOTTOM){
-            BottomUpStack::_free(NONE);
-        }
+        if(&mem == &TOP)            TopDownStack::_free(NONE);
+        else if(&mem == &BOTTOM)    BottomUpStack::_free(NONE);
     }
 }
