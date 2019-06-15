@@ -4,6 +4,9 @@
 #include <cstddef> 
 #include <utility>
 
+//TODO: change all char*'s to void*'s and use as little typecasting as possible
+//implement rule of 5 or rule of 0
+
 namespace mmm{
     extern void *TOP, *BOTTOM, *NONE;
     
@@ -13,15 +16,15 @@ namespace mmm{
         BottomUpStack,
         DoubleStack
     };
-
+    
     class Mmm {
         public:
         
         using size = size_t;    //can only be unsigned type
         static Mmm *create(MmmType, const size, void* = nullptr);
 
-        template<typename T> inline T *alloc(const int copies = 1){ return reinterpret_cast<T*>(_alloc(sizeof(T)*copies)); }
-        inline void *alloc(const size sz, const int copies = 1){ return _alloc(sz*copies); }
+        template<typename T> inline T *alloc(int copies = 1){ return reinterpret_cast<T*>(_alloc(sizeof(T)*copies, alignof(T))); }
+        inline void *alloc(const size sz, int copies = 1, size align = alignment){ return _alloc(sz*copies, align); }
         inline void free(void *& mem = NONE){ _free(mem); }
 
         inline size getBufferSize(){ return bsize; }
@@ -31,27 +34,39 @@ namespace mmm{
         protected:
         //have to provide size cs because sizeof(*this) doesn't return correct size of inherited classes in construction phase
         Mmm(size sz, size cs): bsize(sz-cs), fsize(sz-cs){}
-        inline void * operator new(size_t classSize, void *heap, size &heapSize, size extra = 0){
-            return (heap == nullptr) ? malloc(heapSize += classSize + extra) : heap; 
+            
+        inline void * operator new(size classSize, void *heap, size &heapSize, size extra = 0){
+            if(heap == nullptr){
+                heapSize = align(heapSize + classSize + extra);
+                return reinterpret_cast<void*>(align(reinterpret_cast<size>(malloc(heapSize + sizeof(void*)))));    //maybe don't need to align this part?
+            }else{
+                void *rtn = reinterpret_cast<void*>(align((reinterpret_cast<size>(heap))));
+                heapSize -= (reinterpret_cast<char*>(rtn) - reinterpret_cast<char*>(heap));
+                return rtn;
+            }
         }
-
-        virtual void * _alloc(size) = 0;
+        
+        virtual void * _alloc(size, size) = 0;
         virtual void _free(void*&) = 0;
 
         size bsize, fsize;
+        const static size alignment = sizeof(void*);
+ 
+        inline static size balign(size addr, size a = alignment){ return addr & (-a); }
+        inline static size align(size sz, size a = alignment){ return ((sz + a - 1) & (-a)); }
     };
 
     class TopDownStack : public virtual Mmm {
         public:
 
         TopDownStack(size sz, size cs = sizeof(TopDownStack)): 
-            Mmm(sz-sizeof(size), cs), curr(reinterpret_cast<char*>(this) + cs + sizeof(size)){
-            *(reinterpret_cast<size*>(curr) - 1) = 0;
+            Mmm(sz-sizeof(size), cs), curr(reinterpret_cast<char*>(align(reinterpret_cast<size>(reinterpret_cast<char*>(this) + cs)))){
+            *reinterpret_cast<size*>(curr) = 0;
         }
         
         protected:
 
-        virtual void* _alloc(size);
+        virtual void* _alloc(size, size);
         virtual void _free(void*&);
 
         char *curr;
@@ -61,12 +76,12 @@ namespace mmm{
         public:
 
         BottomUpStack(size sz, size cs = sizeof(BottomUpStack)):
-            Mmm(sz-sizeof(size), cs), curr(reinterpret_cast<char*>(this) + sz - sizeof(size)){
-            *(reinterpret_cast<size*>(curr) + 1) = 0;
+            Mmm(sz-sizeof(size), cs), curr(reinterpret_cast<char*>(balign(reinterpret_cast<size>(this) + cs + sz))){
+            *reinterpret_cast<size*>(curr) = 0;
         }
         
         protected:
-        virtual void *_alloc(size);
+        virtual void *_alloc(size, size);
         virtual void _free(void*&);
 
         char *curr;
@@ -84,7 +99,7 @@ namespace mmm{
 
         protected:
 
-        void *_alloc(size) final;
+        void *_alloc(size, size) final;
         void _free(void*&) final;
     };
 }

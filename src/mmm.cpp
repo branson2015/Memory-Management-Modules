@@ -24,40 +24,40 @@ namespace mmm{
     }
 
     //TopDownStack
-    void * TopDownStack::_alloc(size sz){
-        sz += sizeof(size);
+    void * TopDownStack::_alloc(size sz, size alignment){
+        size nsz = align(sz + sizeof(size), alignment);
 
-        if(fsize < sz)  return nullptr;
-        
-        curr += sz;
-        fsize -= sz;
+        if(fsize < nsz)  return nullptr;
 
-        *reinterpret_cast<size*>(curr - sizeof(size)) = sz;
+        void *rtn = (reinterpret_cast<size*>(curr) - 1);   
         
-        return curr;
+        curr += nsz;
+        fsize -= nsz;
+
+        *reinterpret_cast<size*>(curr) = nsz;
+        return rtn;
     }
 
     void TopDownStack::_free(void *&mem){
         (void)mem;  //silence unused variable compiler warning
 
-        size gain = *reinterpret_cast<size*>(curr - sizeof(size));
+        size gain = *reinterpret_cast<size*>(curr);
 
         curr -= gain;
         fsize += gain;
     }
 
     //BottomUpStack
-    void * BottomUpStack::_alloc(size sz){
-        sz += sizeof(size);
+    void * BottomUpStack::_alloc(size sz, size alignment){
+        sz = balign(sz, alignment) + sizeof(size);
 
         if(fsize < sz)  return nullptr;
-        
+
         curr -= sz;
         fsize -= sz;
 
         *reinterpret_cast<size*>(curr) = sz;
-        
-        return reinterpret_cast<size*>(curr) + 1;
+        return (reinterpret_cast<size*>(curr)+1);
     }
 
     void BottomUpStack::_free(void *&mem){
@@ -70,8 +70,8 @@ namespace mmm{
     }
 
     //doubleStack
-    void * DoubleStack::_alloc(size sz){
-        return (sz < ~sz) ? TopDownStack::_alloc(sz) : BottomUpStack::_alloc(~sz + 1);
+    void * DoubleStack::_alloc(size sz, size alignment){
+        return (sz < ~sz) ? TopDownStack::_alloc(sz, alignment) : BottomUpStack::_alloc(~sz + 1, alignment);
     }
 
     void DoubleStack::_free(void *&mem){

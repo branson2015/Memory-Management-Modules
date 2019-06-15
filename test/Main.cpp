@@ -16,7 +16,7 @@ int main(int argc, char **argv){
     printStats(m);
 
     std::cout << "alloc: " << std::endl;
-    char *t = m->alloc<char>(504);
+    int *t = m->alloc<int>(126); 
     printStats(m);
 
     std::cout << "alloc: " << std::endl;
