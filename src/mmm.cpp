@@ -1,6 +1,8 @@
 #include <cstdlib>
-#include <iostream>
+#include <cmath>
 #include "mmm.hpp"
+
+#include <iostream>
 
 namespace mmm{
 
@@ -25,26 +27,40 @@ namespace mmm{
 
     //TopDownStack
     void * TopDownStack::_alloc(size sz, size alignment){
-        size nsz = align(sz + sizeof(size), alignment);
+        sz += sizeof(size);
 
-        if(fsize < nsz)  return nullptr;
+        UCHAR *old = curr;
+        curr = reinterpret_cast<UCHAR*>(align(reinterpret_cast<size>(curr), alignment));
+        UCHAR offset = curr - old;
 
-        void *rtn = (reinterpret_cast<size*>(curr) - 1);   
+
+        if(fsize < (sz + offset)) return nullptr;
+        if(offset){  
+            *(reinterpret_cast<char*>(curr) - 1) = offset;
+        }
         
-        curr += nsz;
-        fsize -= nsz;
+        old = curr;
+        curr += sz;
+        fsize -= (sz + offset);
 
-        *reinterpret_cast<size*>(curr) = nsz;
-        return rtn;
+        *(reinterpret_cast<size*>(curr) - 1) = sz | (!!offset);
+
+        return old;
     }
 
     void TopDownStack::_free(void *&mem){
         (void)mem;  //silence unused variable compiler warning
 
-        size gain = *reinterpret_cast<size*>(curr);
+        size gain = *(reinterpret_cast<size*>(curr) - 1);
+
+        if(gain & 1){        //have to typecast like this for little endian processors
+            gain += static_cast<UCHAR>(*reinterpret_cast<size*>(curr - gain));
+            gain &= ~1;
+        }
 
         curr -= gain;
         fsize += gain;
+
     }
 
     //BottomUpStack
@@ -77,5 +93,19 @@ namespace mmm{
     void DoubleStack::_free(void *&mem){
         if(&mem == &TOP)            TopDownStack::_free(NONE);
         else if(&mem == &BOTTOM)    BottomUpStack::_free(NONE);
+    }
+
+    //FixedPage
+    FixedPage::FixedPage(size sz, size cs, size ps): 
+    Mmm(sz, cs), 
+    pageSize(ps), 
+    pageTableSize(ceil((sz - sizeof(FixedPage))/(8.0*ps + 1.0))),
+    numPages((sz - sizeof(FixedPage)/pageTableSize)/ps){}
+
+    void *FixedPage::_alloc(size sz, size alignment){
+
+    }
+    void FixedPage::_free(void *&mem){
+
     }
 }

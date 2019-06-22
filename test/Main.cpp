@@ -16,14 +16,16 @@ int main(int argc, char **argv){
     printStats(m);
 
     std::cout << "alloc: " << std::endl;
-    int *t = m->alloc<int>(126); 
+    m->alloc<int>(1); 
+    m->alloc<int*>(1); 
     printStats(m);
 
     std::cout << "alloc: " << std::endl;
-    char *v = m->alloc<char>(-504);
+    m->alloc<char>(-504);
     printStats(m);
 
     std::cout << "free: " << std::endl;
+    m->free(TOP);
     m->free(TOP);
     printStats(m);
 

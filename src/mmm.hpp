@@ -6,6 +6,7 @@
 
 //TODO: change all char*'s to void*'s and use as little typecasting as possible
 //implement rule of 5 or rule of 0
+//make compatible with std::allocator
 
 namespace mmm{
     extern void *TOP, *BOTTOM, *NONE;
@@ -19,8 +20,8 @@ namespace mmm{
     
     class Mmm {
         public:
-        
         using size = size_t;    //can only be unsigned type
+        using UCHAR = unsigned char;
         static Mmm *create(MmmType, const size, void* = nullptr);
 
         template<typename T> inline T *alloc(int copies = 1){ return reinterpret_cast<T*>(_alloc(sizeof(T)*copies, alignof(T))); }
@@ -32,9 +33,9 @@ namespace mmm{
         inline size getUsedSize(){ return bsize - fsize; }
 
         protected:
-        //have to provide size cs because sizeof(*this) doesn't return correct size of inherited classes in construction phase
-        Mmm(size sz, size cs): bsize(sz-cs), fsize(sz-cs){}
-            
+        Mmm(size sz, size cs): bsize(sz-cs), fsize(sz-cs){} //have to provide size cs because sizeof(*this) doesn't return correct size of inherited classes in construction phase
+        
+        //possibly put this in the create class instead? probably better suited there.
         inline void * operator new(size classSize, void *heap, size &heapSize, size extra = 0){
             if(heap == nullptr){
                 heapSize = align(heapSize + classSize + extra);
@@ -45,6 +46,7 @@ namespace mmm{
                 return rtn;
             }
         }
+        ~Mmm() = default;
         
         virtual void * _alloc(size, size) = 0;
         virtual void _free(void*&) = 0;
@@ -58,25 +60,22 @@ namespace mmm{
 
     class TopDownStack : public virtual Mmm {
         public:
-
         TopDownStack(size sz, size cs = sizeof(TopDownStack)): 
-            Mmm(sz-sizeof(size), cs), curr(reinterpret_cast<char*>(align(reinterpret_cast<size>(reinterpret_cast<char*>(this) + cs)))){
+            Mmm(sz-sizeof(size), cs), curr(reinterpret_cast<UCHAR*>(align(reinterpret_cast<size>(reinterpret_cast<char*>(this) + cs)))){
             *reinterpret_cast<size*>(curr) = 0;
         }
         
         protected:
-
         virtual void* _alloc(size, size);
         virtual void _free(void*&);
 
-        char *curr;
+        UCHAR *curr;
     };
 
     class BottomUpStack : public virtual Mmm{
         public:
-
         BottomUpStack(size sz, size cs = sizeof(BottomUpStack)):
-            Mmm(sz-sizeof(size), cs), curr(reinterpret_cast<char*>(balign(reinterpret_cast<size>(this) + cs + sz))){
+            Mmm(sz-sizeof(size), cs), curr(reinterpret_cast<UCHAR*>(balign(reinterpret_cast<size>(this) + cs + sz))){
             *reinterpret_cast<size*>(curr) = 0;
         }
         
@@ -84,12 +83,11 @@ namespace mmm{
         virtual void *_alloc(size, size);
         virtual void _free(void*&);
 
-        char *curr;
+        UCHAR *curr;
     };
 
     class DoubleStack : public TopDownStack, public BottomUpStack{
         public:
-
         DoubleStack(size sz, size cs = sizeof(DoubleStack)):
             Mmm(sz - 2*sizeof(size), cs), TopDownStack(sz, cs), BottomUpStack(sz, cs){}
         
@@ -98,9 +96,27 @@ namespace mmm{
         }
 
         protected:
-
         void *_alloc(size, size) final;
         void _free(void*&) final;
+    };
+
+    //will probably need to make this a builder class or something of that sort because of complicated constructors
+    class FixedPage: public Mmm{
+        public:
+        FixedPage(size sz, size cs = sizeof(FixedPage), size ps = 512);
+
+        protected:
+        const size pageSize;
+        const size pageTableSize;
+        const size numPages;
+        UCHAR *pageTable;
+
+        struct Header{
+            void *prev, *next;
+        } header;
+
+        void *_alloc(size sz, size alignment) override;
+        void _free(void*&) override;
     };
 }
 
