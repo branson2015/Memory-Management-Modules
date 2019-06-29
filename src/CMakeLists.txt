@@ -8,7 +8,6 @@ project(MMM)
 
 set(SOURCE_FILES 
     mmm.cpp
-    mmm.hpp
 )
 
 #add_subdirectory(${PROJECT_NAME} ${subdirectories})

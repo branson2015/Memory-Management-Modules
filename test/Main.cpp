@@ -2,36 +2,20 @@
 #include "mmm.hpp"
 using namespace mmm;
 
-#define Stack DoubleStack  //for testing
-
-inline void printStats(Mmm * m){
-    std::cout << "free: " << m->getFreeSize() << std::endl;
-    std::cout << "used: " << m->getUsedSize() << std::endl << std::endl;
-}
+#define Stack FixedPageStack  //for testing
 
 int main(int argc, char **argv){
 
-    std::cout << "init:" << std::endl;
-    Mmm *m = Mmm::create(MmmType::Stack, 1024);
-    printStats(m);
 
-    std::cout << "alloc: " << std::endl;
-    m->alloc<int>(1); 
-    m->alloc<int*>(1); 
-    printStats(m);
+    void *mem = malloc(8192);
+    Mmm *m = Mmm::createPool(MmmPoolType::FixedPage, 8192, mem);
 
-    std::cout << "alloc: " << std::endl;
-    m->alloc<char>(-504);
-    printStats(m);
-
-    std::cout << "free: " << std::endl;
-    m->free(TOP);
-    m->free(TOP);
-    printStats(m);
-
-    std::cout << "free: " << std::endl;
-    m->free(BOTTOM);
-    printStats(m);
+    void *t1 = m->alloc();
+    void *t2 = m->alloc();
+    m->free(t1);
+    m->free(t2);
+    void *t3 = m->alloc();
+    void *t4 = m->alloc();
 
     return 0;
 }

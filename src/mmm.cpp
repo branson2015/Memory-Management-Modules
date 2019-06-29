@@ -6,21 +6,27 @@
 
 namespace mmm{
 
-    void *TOP = nullptr;
-    void *BOTTOM = nullptr;
-    void *NONE = nullptr;
-
     //Base
-    Mmm *Mmm::create(MmmType type, size sz, void *memory){
+    Mmm *Mmm::createStack(MmmStackType type, size sz, void *memory){
         switch(type){
-            case MmmType::SingleStack:
-            case MmmType::TopDownStack:
+            case MmmStackType::SingleStack:
+            case MmmStackType::TopDownStack:
                 return new(memory, sz, sizeof(size)) TopDownStack(sz);
-            case MmmType::BottomUpStack:
+            case MmmStackType::BottomUpStack:
                 return new(memory, sz, sizeof(size)) BottomUpStack(sz);
-            case MmmType::DoubleStack:
+            case MmmStackType::DoubleStack:
                 return new(memory, sz, sizeof(size)*2) DoubleStack(sz);
             default: 
+                return nullptr;
+        }
+    }
+
+
+    Mmm *Mmm::createPool(MmmPoolType type, size sz, void *memory){
+        switch(type){
+            case MmmPoolType::FixedPage:
+                return new(memory, sz, 0) FixedPage(sz);
+            default:
                 return nullptr;
         }
     }
@@ -29,43 +35,35 @@ namespace mmm{
     void * TopDownStack::_alloc(size sz, size alignment){
         sz += sizeof(size);
 
-        UCHAR *old = curr;
-        curr = reinterpret_cast<UCHAR*>(align(reinterpret_cast<size>(curr), alignment));
-        UCHAR offset = curr - old;
-
-
-        if(fsize < (sz + offset)) return nullptr;
-        if(offset){  
-            *(reinterpret_cast<char*>(curr) - 1) = offset;
-        }
+        size psz = *(reinterpret_cast<size*>(curr) - 1);
+        size offset = reinterpret_cast<UCHAR*>(align(reinterpret_cast<size>(curr), alignment)) - curr;
         
-        old = curr;
+        sz += offset;
+        if(fsize < sz) return nullptr;        
+        
+        UCHAR *rtn = curr + offset;
+        *(reinterpret_cast<size*>(rtn) - 1) = psz + offset;
+        
         curr += sz;
-        fsize -= (sz + offset);
+        fsize -= sz;
 
-        *(reinterpret_cast<size*>(curr) - 1) = sz | (!!offset);
+        *(reinterpret_cast<size*>(curr) - 1) = sz - offset;
 
-        return old;
+        return rtn;
     }
 
-    void TopDownStack::_free(void *&mem){
-        (void)mem;  //silence unused variable compiler warning
+    void TopDownStack::_free(void *mem){
+        (void)mem;
 
         size gain = *(reinterpret_cast<size*>(curr) - 1);
 
-        if(gain & 1){        //have to typecast like this for little endian processors
-            gain += static_cast<UCHAR>(*reinterpret_cast<size*>(curr - gain));
-            gain &= ~1;
-        }
-
         curr -= gain;
         fsize += gain;
-
     }
 
     //BottomUpStack
     void * BottomUpStack::_alloc(size sz, size alignment){
-        sz = balign(sz, alignment) + sizeof(size);
+        sz = curr - reinterpret_cast<UCHAR*>(balign(reinterpret_cast<size>(curr) - sz, alignment)) + sizeof(size);
 
         if(fsize < sz)  return nullptr;
 
@@ -76,8 +74,8 @@ namespace mmm{
         return (reinterpret_cast<size*>(curr)+1);
     }
 
-    void BottomUpStack::_free(void *&mem){
-        (void)mem;  //silence unused variable compiler warning
+    void BottomUpStack::_free(void *mem){
+        (void)mem;
 
         size gain = *reinterpret_cast<size*>(curr);
 
@@ -90,22 +88,41 @@ namespace mmm{
         return (sz < ~sz) ? TopDownStack::_alloc(sz, alignment) : BottomUpStack::_alloc(~sz + 1, alignment);
     }
 
-    void DoubleStack::_free(void *&mem){
-        if(&mem == &TOP)            TopDownStack::_free(NONE);
-        else if(&mem == &BOTTOM)    BottomUpStack::_free(NONE);
+    void DoubleStack::_free(void *mem){
+        if(*reinterpret_cast<const char*>(mem) == *reinterpret_cast<const char*>(TOP))            TopDownStack::_free(NONE);
+        else if(*reinterpret_cast<const char*>(mem) == *reinterpret_cast<const char*>(BOTTOM))    BottomUpStack::_free(NONE);
     }
 
-    //FixedPage
+    //fixedPage
     FixedPage::FixedPage(size sz, size cs, size ps): 
     Mmm(sz, cs), 
-    pageSize(ps), 
-    pageTableSize(ceil((sz - sizeof(FixedPage))/(8.0*ps + 1.0))),
-    numPages((sz - sizeof(FixedPage)/pageTableSize)/ps){}
-
-    void *FixedPage::_alloc(size sz, size alignment){
-
+    pageSize(align(ps)),
+    numPages(balign(sz-cs, alignment)/ps), //balign here? or align off of actual mem locations?
+    pagesInUse(0){
+        freeHead = (reinterpret_cast<UCHAR*>(align(reinterpret_cast<size>(this) + cs, alignment)));
+        freeFoot = freeHead;
     }
-    void FixedPage::_free(void *&mem){
 
+    //should sz refer to number of pages or object size?
+    void *FixedPage::_alloc(size sz, size alignment){
+        (void)sz;
+        (void)alignment;
+
+        if(pagesInUse == numPages)  return nullptr;
+        ++pagesInUse;
+
+        void *rtn = freeHead;
+
+        size bitmask = -static_cast<size>(freeHead == freeFoot);
+        freeFoot += pageSize & bitmask;
+        freeHead = reinterpret_cast<UCHAR*>((*reinterpret_cast<size*>(freeHead) & ~bitmask) | (reinterpret_cast<size>(freeFoot) & bitmask));
+
+        return rtn;
+    }
+
+    void FixedPage::_free(void *mem){
+        --pagesInUse;
+        *reinterpret_cast<size*>(mem) = reinterpret_cast<size>(freeHead);
+        freeHead = reinterpret_cast<UCHAR*>(mem);
     }
 }

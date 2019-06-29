@@ -46,3 +46,4 @@ Makefile
 bin/*
 lib/*
 build/*
+ignore/*
